@@ -19,8 +19,8 @@ export async function saveCategory(form: FormData) {
   if (!parsed.success) redirect(`${id ? `/admin/categories/${id}` : "/admin/categories/new"}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "بيانات القسم غير صحيحة")}`);
   const data = { ...parsed.data, imageUrl: parsed.data.imageUrl || null };
   try { if (id) await prisma.category.update({ where: { id }, data }); else await prisma.category.create({ data }); }
-  catch (error) { if (String(error).includes("Unique constraint")) redirect(`${id ? `/admin/categories/${id}` : "/admin/categories/new"}?error=الرابط+المختصر+مستخدم+بالفعل`); throw error; }
-  invalidate(); redirect("/admin/categories?success=تم+حفظ+القسم");
+  catch (error) { if (String(error).includes("Unique constraint")) redirect(`${id ? `/admin/categories/${id}` : "/admin/categories/new"}?error=${encodeURIComponent("الرابط المختصر مستخدم بالفعل")}`); throw error; }
+  invalidate(); redirect(`/admin/categories?success=${encodeURIComponent("تم حفظ القسم")}`);
 }
 
 export async function hideCategory(form: FormData) { await requireStaff(); const id = z.string().parse(form.get("id")); await prisma.category.update({ where: { id }, data: { isVisible: false } }); invalidate(); }
@@ -31,5 +31,5 @@ export async function saveStorefront(form: FormData) {
   if (!parsed.success) redirect(`/admin/storefront?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "راجعي البيانات")}`);
   const data = { ...parsed.data, heroImageUrl: parsed.data.heroImageUrl || null, promoImageUrl: parsed.data.promoImageUrl || null };
   await prisma.storefrontContent.upsert({ where: { id: "main" }, create: { id: "main", ...data }, update: data });
-  revalidatePath("/"); redirect("/admin/storefront?success=تم+تحديث+واجهة+المتجر");
+  revalidatePath("/"); redirect(`/admin/storefront?success=${encodeURIComponent("تم تحديث واجهة المتجر")}`);
 }
