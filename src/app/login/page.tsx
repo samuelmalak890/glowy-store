@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { login } from "@/app/actions/auth";
+export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) { const { error } = await searchParams; return <main className="auth"><h1>Welcome back</h1>{error && <p className="error">{error}</p>}<form action={login} className="form"><label>Email<input name="email" type="email" required/></label><label>Password<input name="password" type="password" minLength={8} required/></label><button className="button">Sign in</button></form><p>New to GLOWY? <Link href="/register">Create an account</Link></p></main>; }

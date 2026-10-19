@@ -1,0 +1,3 @@
+import Link from "next/link";
+import { register } from "@/app/actions/auth";
+export default async function Register({ searchParams }: { searchParams: Promise<{ error?: string }> }) { const { error } = await searchParams; return <main className="auth"><h1>Create your account</h1>{error && <p className="error">{error}</p>}<form action={register} className="form"><label>Name<input name="name" required/></label><label>Email<input name="email" type="email" required/></label><label>Password<input name="password" type="password" minLength={8} required/></label><button className="button">Create account</button></form><p>Already have an account? <Link href="/login">Sign in</Link></p></main>; }
