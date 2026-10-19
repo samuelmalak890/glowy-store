@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { requireOrderStaff } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+const labels: Record<string, string> = { PENDING_CONFIRMATION: "بانتظار التأكيد", CONFIRMED: "مؤكد", PROCESSING: "قيد التجهيز", READY_FOR_SHIPMENT: "جاهز للشحن", SHIPPED: "تم الشحن", DELIVERED: "تم التسليم", CANCELLED: "ملغي", RETURNED: "مرتجع" };
+export default async function Orders() { await requireOrderStaff(); const orders = await prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: "desc" } }); return <main className="section" dir="rtl"><div className="section-heading"><div><p className="eyebrow">إدارة المبيعات</p><h1>الطلبات</h1></div><Link className="secondary-button" href="/admin/settings">إعدادات الشحن وواتساب</Link></div>{!orders.length ? <p className="empty">لا توجد طلبات حتى الآن.</p> : <div className="table">{orders.map(order => <Link className="table-row order-row" href={`/admin/orders/${order.id}`} key={order.id}><div><strong>{order.number}</strong><small>{order.customerName} · {order.phone}</small></div><span>{order.items.length} منتج</span><span>{Number(order.total).toFixed(2)} جنيه</span><span>{labels[order.status]}</span><span>عرض وتجهيز ←</span></Link>)}</div>}</main>; }

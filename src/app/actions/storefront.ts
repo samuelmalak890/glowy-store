@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 const urlOrEmpty = z.union([z.literal(""), z.string().url()]);
 const categorySchema = z.object({ nameAr: z.string().trim().min(2).max(80), nameEn: z.string().trim().min(2).max(80), slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), imageUrl: urlOrEmpty, position: z.coerce.number().int().min(0).max(9999), isVisible: z.boolean() });
 const storefrontSchema = z.object({ heroEyebrow: z.string().trim().min(1).max(80), heroTitle: z.string().trim().min(2).max(160), heroText: z.string().trim().min(2).max(400), heroButtonLabel: z.string().trim().min(1).max(50), heroButtonHref: z.string().trim().startsWith("/"), heroImageUrl: urlOrEmpty, promoEyebrow: z.string().trim().min(1).max(80), promoTitle: z.string().trim().min(2).max(160), promoText: z.string().trim().min(2).max(400), promoButtonLabel: z.string().trim().min(1).max(50), promoButtonHref: z.string().trim().startsWith("/"), promoImageUrl: urlOrEmpty });
+const settingsSchema = z.object({ shippingFee: z.coerce.number().min(0).max(100000), freeShippingThreshold: z.union([z.literal(""), z.coerce.number().positive().max(1000000)]), whatsappNumber: z.string().trim().regex(/^(?:\+?20|0020|0)?1[0-25][0-9]{8}$/).or(z.literal("")) });
 
 function categoryData(form: FormData) { return categorySchema.safeParse({ ...Object.fromEntries(form), isVisible: form.get("isVisible") === "on" }); }
 function invalidate() { revalidatePath("/"); revalidatePath("/products"); revalidatePath("/admin/categories"); }
@@ -32,4 +33,12 @@ export async function saveStorefront(form: FormData) {
   const data = { ...parsed.data, heroImageUrl: parsed.data.heroImageUrl || null, promoImageUrl: parsed.data.promoImageUrl || null };
   await prisma.storefrontContent.upsert({ where: { id: "main" }, create: { id: "main", ...data }, update: data });
   revalidatePath("/"); redirect(`/admin/storefront?success=${encodeURIComponent("تم تحديث واجهة المتجر")}`);
+}
+
+export async function saveStoreSettings(form: FormData) {
+  await requireStaff(); const parsed = settingsSchema.safeParse(Object.fromEntries(form));
+  if (!parsed.success) redirect(`/admin/settings?error=${encodeURIComponent("راجعي رسوم الشحن ورقم واتساب")}`);
+  const whatsappNumber = parsed.data.whatsappNumber.replace(/^00/, "").replace(/^0/, "20").replace(/^\+/, "");
+  await prisma.storeSettings.upsert({ where: { id: "main" }, create: { id: "main", shippingFee: parsed.data.shippingFee, freeShippingThreshold: parsed.data.freeShippingThreshold === "" ? null : parsed.data.freeShippingThreshold, whatsappNumber: whatsappNumber || null }, update: { shippingFee: parsed.data.shippingFee, freeShippingThreshold: parsed.data.freeShippingThreshold === "" ? null : parsed.data.freeShippingThreshold, whatsappNumber: whatsappNumber || null } });
+  revalidatePath("/checkout"); redirect(`/admin/settings?success=${encodeURIComponent("تم حفظ إعدادات الشحن وواتساب")}`);
 }

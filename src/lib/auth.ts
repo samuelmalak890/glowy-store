@@ -23,4 +23,9 @@ export async function requireStaff() {
   if (s.role === Role.CUSTOMER || s.role === Role.ORDER_MANAGER) redirect("/");
   return s;
 }
+export async function requireOrderStaff() {
+  const s = await requireUser();
+  if (s.role === Role.CUSTOMER || s.role === Role.INVENTORY_MANAGER) redirect("/");
+  return s;
+}
 export async function endSession() { (await cookies()).delete(cookieName); }
