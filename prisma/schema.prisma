@@ -62,11 +62,29 @@ model Category {
   nameEn String
   isVisible Boolean @default(true)
   position Int @default(0)
+  imageUrl String?
   parentId String?
   parent Category? @relation("CategoryTree", fields: [parentId], references: [id])
   children Category[] @relation("CategoryTree")
   products Product[]
   createdAt DateTime @default(now())
+}
+
+model StorefrontContent {
+  id String @id @default("main")
+  heroEyebrow String @default("NEW IN / GLOWY")
+  heroTitle String @default("لمعة ناعمة.\nثقة حقيقية.")
+  heroText String @default("اكتشفي اختيارات العناية والإكسسوارات التي تجعل كل تفاصيلك أكثر إشراقاً.")
+  heroButtonLabel String @default("تسوّقي الآن")
+  heroButtonHref String @default("/products")
+  heroImageUrl String?
+  promoEyebrow String @default("عرض مختار")
+  promoTitle String @default("اختاري ما يناسب أسلوبك")
+  promoText String @default("أضيفي منتجاتك وأسعارك وصورها من لوحة الإدارة، وستظهر تلقائياً في المتجر.")
+  promoButtonLabel String @default("تصفحي المنتجات")
+  promoButtonHref String @default("/products")
+  promoImageUrl String?
+  updatedAt DateTime @updatedAt
 }
 
 model Product {
