@@ -10,5 +10,5 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const order = await prisma.order.findUnique({ where: { number }, include: { items: true } });
   if (!order || (session?.id !== order.userId && token !== order.accessToken)) notFound();
   const pdf = await createInvoicePdf(order);
-  return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="GLOWY-${order.number}.pdf"`, "Cache-Control": "private, no-store" } });
+  return new Response(new Uint8Array(pdf), { headers: { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="GLOWY-${order.number}.pdf"`, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } });
 }

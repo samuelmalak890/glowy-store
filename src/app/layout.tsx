@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/locale";
 import { HeaderNav } from "./HeaderNav";
 import "./globals.css";
 import "./categories.css";
+import "./storefront.css";
 
 export const metadata: Metadata = { title: "GLOWY — Egyptian beauty & accessories", description: "GLOWY online store" };
 export const dynamic = "force-dynamic";
