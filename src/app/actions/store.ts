@@ -19,9 +19,18 @@ export async function addToCart(form: FormData) {
   revalidatePath("/cart"); redirect("/cart");
 }
 export async function updateCart(form: FormData) { const s = await getSession(); if (!s) redirect("/login"); const id = z.string().parse(form.get("id")); const quantity = z.coerce.number().int().min(0).parse(form.get("quantity")); const item = await prisma.cartItem.findFirstOrThrow({ where: { id, cart: { userId: s.id } }, include: { product: true } }); if (quantity === 0) await prisma.cartItem.delete({ where: { id } }); else { if (quantity > item.product.stock) redirect("/cart?error=Quantity%20exceeds%20available%20stock"); await prisma.cartItem.update({ where: { id }, data: { quantity } }); } revalidatePath("/cart"); }
-const checkoutSchema = z.object({ name: z.string().trim().min(2), phone: z.string().trim().regex(/^(?:\+20|0020|0)?1[0-25][0-9]{8}$/), email: z.union([z.literal(""), z.string().email()]), governorate: z.string().trim().min(2), city: z.string().trim().min(2), address: z.string().trim().min(8), notes: z.string().max(500) });
+const normalizeDigits = (value: unknown) => String(value ?? "").replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))).trim();
+const checkoutSchema = z.object({
+  name: z.preprocess(normalizeDigits, z.string().min(2, "اكتب الاسم بالكامل.")),
+  phone: z.preprocess((value) => normalizeDigits(value).replace(/[\s()-]/g, ""), z.string().regex(/^(?:\+20|0020|0)?1[0-25][0-9]{8}$/, "اكتب رقم موبايل مصري صحيح، مثل 01234567890.")),
+  email: z.preprocess((value) => String(value ?? "").trim(), z.union([z.literal(""), z.string().email("اكتب بريدًا إلكترونيًا صحيحًا أو اتركه فارغًا.")])),
+  governorate: z.preprocess(normalizeDigits, z.string().min(2, "اكتب المحافظة.")),
+  city: z.preprocess(normalizeDigits, z.string().min(2, "اكتب المدينة أو المنطقة.")),
+  address: z.preprocess(normalizeDigits, z.string().min(8, "اكتب العنوان بالتفصيل (8 حروف على الأقل).")),
+  notes: z.preprocess((value) => String(value ?? "").trim(), z.string().max(500, "الملاحظات يجب ألا تزيد عن 500 حرف.")),
+});
 export async function checkout(form: FormData) {
-  const s = await getSession(); if (!s) redirect("/login?next=/checkout"); const parsed = checkoutSchema.safeParse(Object.fromEntries(form)); if (!parsed.success) redirect("/checkout?error=Please%20check%20the%20delivery%20details.");
+  const s = await getSession(); if (!s) redirect("/login?next=/checkout"); const parsed = checkoutSchema.safeParse(Object.fromEntries(form)); if (!parsed.success) redirect(`/checkout?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "راجعي بيانات التوصيل ثم حاولي مرة أخرى.")}`);
   const [cart, settings] = await Promise.all([prisma.cart.findUnique({ where: { userId: s.id }, include: { items: { include: { product: true } } } }), prisma.storeSettings.findUnique({ where: { id: "main" } })]); if (!cart?.items.length) redirect("/cart");
   const order = await prisma.$transaction(async (tx) => {
     let subtotal = 0; for (const item of cart.items) { const product = await tx.product.findFirst({ where: { id: item.productId, status: ProductStatus.ACTIVE } }); if (!product || product.stock < item.quantity) throw new Error(`Insufficient stock for ${item.product.nameEn}`); const price = Number(product.salePrice ?? product.price); subtotal += price * item.quantity; await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: item.quantity } } }); await tx.inventoryMovement.create({ data: { productId: product.id, actorId: s.id, previousQuantity: product.stock, newQuantity: product.stock - item.quantity, type: "ORDER_RESERVATION", note: "Order checkout" } }); }
